@@ -2,7 +2,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap, catchError, throwError } from 'rxjs';
-import { AuthResponse, User } from './user.model';
+import { AuthResponse, User, UserResponse } from './user.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -44,9 +44,21 @@ export class AuthService {
   }
 
   private setSession(authResult: AuthResponse) {
-    localStorage.setItem('token', authResult.accessToken);
-    this._accessToken.set(authResult.accessToken);
-    this._currentUser.set(authResult.user);
+    localStorage.setItem('token', authResult.token);
+    this._accessToken.set(authResult.token);
+    
+    // Map backend user response to frontend user model
+    if (authResult.user) {
+      const user: User = {
+        id: authResult.user.id,
+        email: authResult.user.email,
+        firstName: authResult.user.userName, // Using userName as firstName since backend doesn't separate first/last
+        lastName: '', // Empty since backend doesn't provide it
+        role: authResult.user.role as 'ADMIN' | 'TEACHER' | 'STUDENT'
+      };
+      this._currentUser.set(user);
+    }
+    
     this.router.navigate(['/dashboard']);
   }
   

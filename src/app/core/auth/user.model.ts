@@ -6,8 +6,14 @@ export interface User {
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
 }
 
+export interface UserResponse {
+  id: string;
+  email: string;
+  userName: string;
+  role: string;
+}
+
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: User;
+  token: string;
+  user: UserResponse;
 }

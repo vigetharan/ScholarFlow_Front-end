@@ -12,7 +12,7 @@ export const routes: Routes = [
     children: [
       { 
         path: 'login', 
-        loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent) 
+        loadComponent: () => import('./features/auth/login/enhanced-login.component').then(m => m.EnhancedLoginComponent) 
       },
       { 
         path: 'register', 
@@ -20,21 +20,7 @@ export const routes: Routes = [
       }
     ]
   },
-// Auth Layout
-  {
-    path: 'auth',
-    loadComponent: () => import('./layout/auth-layout/auth-layout.component').then(m => m.AuthLayoutComponent),
-    children: [
-      { 
-        path: 'login', 
-        loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent) 
-      },
-      { 
-        path: 'register', 
-        loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent) 
-      }
-    ]
-  },
+  
   // 3. App Routes (Protected) - Wrapped in MainLayout
   {
     path: '',
@@ -44,6 +30,14 @@ export const routes: Routes = [
       { 
         path: 'dashboard', 
         loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+      },
+      { 
+        path: 'exam-dashboard', 
+        loadComponent: () => import('./features/exam/exam-dashboard.component').then(m => m.ExamDashboardComponent) 
+      },
+      { 
+        path: 'exam/:id', 
+        loadComponent: () => import('./features/exam/exam.component').then(m => m.ExamComponent) 
       },
       // Add more features here...
     ]
