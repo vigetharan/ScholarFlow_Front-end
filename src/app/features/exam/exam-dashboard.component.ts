@@ -108,14 +108,15 @@ interface Exam {
         <div class="bg-white rounded-lg shadow">
           <div class="border-b border-gray-200">
             <nav class="flex -mb-px">
-              <button 
-                *ngFor="let tab of filterTabs"
-                (click)="activeFilter.set(tab)"
-                class="py-4 px-6 border-b-2 font-medium text-sm transition-colors"
-                [class]="activeFilter() === tab ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-              >
-                {{ tab }}
-              </button>
+              @for (tab of filterTabs; track tab) {
+                <button 
+                  (click)="activeFilter.set(tab)"
+                  class="py-4 px-6 border-b-2 font-medium text-sm transition-colors"
+                  [class]="activeFilter() === tab ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                >
+                  {{ tab }}
+                </button>
+              }
             </nav>
           </div>
         </div>
@@ -124,89 +125,96 @@ interface Exam {
       <!-- Exams List -->
       <div class="max-w-7xl mx-auto">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div 
-            *ngFor="let exam of filteredExams(); trackBy: exam.id"
-            class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-            (click)="startExam(exam.id)"
-          >
-            <div class="p-6">
-              <!-- Exam Header -->
-              <div class="flex justify-between items-start mb-4">
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-800">{{ exam.title }}</h3>
-                  <p class="text-sm text-gray-600">{{ exam.subject }}</p>
-                </div>
-                <span 
-                  class="px-2 py-1 text-xs font-medium rounded-full"
-                  [class]="getDifficultyClass(exam.difficulty)"
-                >
-                  {{ exam.difficulty }}
-                </span>
-              </div>
-
-              <!-- Exam Details -->
-              <div class="space-y-2 mb-4">
-                <div class="flex items-center text-sm text-gray-600">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  {{ exam.duration }}
-                </div>
-                <div class="flex items-center text-sm text-gray-600">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 1.58-2 3-2 .925 2.678 1.58 4.231.77 1.676 1.582 2.831 1.58.751 0 1.506-.32 2.047-.784 2.291-1.151.236-.261.463-.534.658-.8.97-.603-1.765-.14-3.174-.403-2.607-.766-2.467-1.666-.145-.353-.319-.684-.48-1.04-.219-.747-.371-1.459-.373-2.51 0-1.053.385-2.06 1.08-2.833L15.78.892c-.425-.532-.672-.968-.766-1.329-.192-1.004-.277-2.09-.38-2.831.019-1.266.94-2.425 1.616-3.42.672-1.638 1.523-3.023 1.523-2.347 0-4.29-1.91-4.29-4.29h-1.241c-1.014 0-1.914.495-1.914 1.09v1.241c0 .595.425 1.09 1.014 1.09h2.756l-.118 2.143c-.011.21-.043.416-.12.615-.064.29-.146.583-.246.848-.099.325-.232.624-.401.914-.17.556-.402 1.055-.402 1.755 0 1.416.672 2.475 1.958 3.023l2.914 2.914m1.414 1.414c-.785.785-1.814 1.234-2.914 1.234H6.5c-1.1 0-2.129-.449-2.914-1.234L.707 15.814C.449 16.129 0 17.158 0 18.258V19.5c0 .925.376 1.755 1.014 1.755h2.756l-.118 2.143c-.011.21-.043.416-.12.615-.064.29-.146.583-.246.848-.099.325-.232.624-.401.914-.17.556-.402 1.055-.402 1.755 0 1.416.672 2.475 1.958 3.023l2.914 2.914"/>
-                  </svg>
-                  {{ exam.questions }} questions
-                </div>
-                <div class="flex items-center text-sm text-gray-600">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                  </svg>
-                  {{ exam.attempts }} attempts
-                </div>
-              </div>
-
-              <!-- Status Badge -->
-              <div class="flex items-center justify-between">
-                <span 
-                  class="px-3 py-1 text-xs font-medium rounded-full"
-                  [class]="getStatusClass(exam.status)"
-                >
-                  {{ exam.status }}
-                </span>
-                <div *ngIf="exam.score" class="text-sm font-medium">
-                  <span class="text-gray-600">Score:</span>
-                  <span class="text-lg font-bold" [class]="exam.score >= 60 ? 'text-green-600' : 'text-red-600'">
-                    {{ exam.score }}%
+          <!-- FIXED: Switched to @for loop to support 'track exam.id' -->
+          @for (exam of filteredExams(); track exam.id) {
+            <div 
+              class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+              (click)="startExam(exam.id)"
+            >
+              <div class="p-6">
+                <!-- Exam Header -->
+                <div class="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-800">{{ exam.title }}</h3>
+                    <p class="text-sm text-gray-600">{{ exam.subject }}</p>
+                  </div>
+                  <span 
+                    class="px-2 py-1 text-xs font-medium rounded-full"
+                    [class]="getDifficultyClass(exam.difficulty)"
+                  >
+                    {{ exam.difficulty }}
                   </span>
                 </div>
-              </div>
 
-              <!-- Action Buttons -->
-              <div class="flex space-x-2 mt-4">
-                <button 
-                  *ngIf="exam.status === 'Not Started' || exam.status === 'Completed'"
-                  (click)="startExam(exam.id)"
-                  class="flex-1 px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  {{ exam.status === 'Completed' ? 'Retake' : 'Start' }}
-                </button>
-                <button 
-                  *ngIf="exam.status === 'In Progress'"
-                  (click)="continueExam(exam.id)"
-                  class="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Continue
-                </button>
-                <button 
-                  (click)="viewResults(exam.id)"
-                  class="px-3 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Results
-                </button>
+                <!-- Exam Details -->
+                <div class="space-y-2 mb-4">
+                  <div class="flex items-center text-sm text-gray-600">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {{ exam.duration }}
+                  </div>
+                  <div class="flex items-center text-sm text-gray-600">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 1.58-2 3-2 .925 2.678 1.58 4.231.77 1.676 1.582 2.831 1.58.751 0 1.506-.32 2.047-.784 2.291-1.151.236-.261.463-.534.658-.8.97-.603-1.765-.14-3.174-.403-2.607-.766-2.467-1.666-.145-.353-.319-.684-.48-1.04-.219-.747-.371-1.459-.373-2.51 0-1.053.385-2.06 1.08-2.833L15.78.892c-.425-.532-.672-.968-.766-1.329-.192-1.004-.277-2.09-.38-2.831.019-1.266.94-2.425 1.616-3.42.672-1.638 1.523-3.023 1.523-2.347 0-4.29-1.91-4.29-4.29h-1.241c-1.014 0-1.914.495-1.914 1.09v1.241c0 .595.425 1.09 1.014 1.09h2.756l-.118 2.143c-.011.21-.043.416-.12.615-.064.29-.146.583-.246.848-.099.325-.232.624-.401.914-.17.556-.402 1.055-.402 1.755 0 1.416.672 2.475 1.958 3.023l2.914 2.914m1.414 1.414c-.785.785-1.814 1.234-2.914 1.234H6.5c-1.1 0-2.129-.449-2.914-1.234L.707 15.814C.449 16.129 0 17.158 0 18.258V19.5c0 .925.376 1.755 1.014 1.755h2.756l-.118 2.143c-.011.21-.043.416-.12.615-.064.29-.146.583-.246.848-.099.325-.232.624-.401.914-.17.556-.402 1.055-.402 1.755 0 1.416.672 2.475 1.958 3.023l2.914 2.914"/>
+                    </svg>
+                    {{ exam.questions }} questions
+                  </div>
+                  <div class="flex items-center text-sm text-gray-600">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    {{ exam.attempts }} attempts
+                  </div>
+                </div>
+
+                <!-- Status Badge -->
+                <div class="flex items-center justify-between">
+                  <span 
+                    class="px-3 py-1 text-xs font-medium rounded-full"
+                    [class]="getStatusClass(exam.status)"
+                  >
+                    {{ exam.status }}
+                  </span>
+                  @if (exam.score !== undefined) {
+                    <div class="text-sm font-medium">
+                      <span class="text-gray-600">Score:</span>
+                      <span class="text-lg font-bold" [class]="exam.score >= 60 ? 'text-green-600' : 'text-red-600'">
+                        {{ exam.score }}%
+                      </span>
+                    </div>
+                  }
+                </div>
+
+                <!-- Action Buttons -->
+                <!-- Added $event.stopPropagation() to prevent triggering the card click -->
+                <div class="flex space-x-2 mt-4">
+                  @if (exam.status === 'Not Started' || exam.status === 'Completed') {
+                    <button 
+                      (click)="startExam(exam.id); $event.stopPropagation()"
+                      class="flex-1 px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      {{ exam.status === 'Completed' ? 'Retake' : 'Start' }}
+                    </button>
+                  }
+                  @if (exam.status === 'In Progress') {
+                    <button 
+                      (click)="continueExam(exam.id); $event.stopPropagation()"
+                      class="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Continue
+                    </button>
+                  }
+                  <button 
+                    (click)="viewResults(exam.id); $event.stopPropagation()"
+                    class="px-3 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Results
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          }
         </div>
       </div>
     </div>
@@ -266,14 +274,14 @@ export class ExamDashboardComponent {
   ]);
 
   totalExams = computed(() => this.exams().length);
-completed = computed(() => this.exams().filter(e => e.status === 'Completed').length);
-inProgress = computed(() => this.exams().filter(e => e.status === 'In Progress').length);
-averageScore = computed(() => {
-  const scoredExams = this.exams().filter(e => e.score !== undefined);
-  return scoredExams.length > 0 
-    ? Math.round(scoredExams.reduce((sum, e) => sum + (e.score || 0), 0) / scoredExams.length)
-    : 0;
-});
+  completed = computed(() => this.exams().filter(e => e.status === 'Completed').length);
+  inProgress = computed(() => this.exams().filter(e => e.status === 'In Progress').length);
+  averageScore = computed(() => {
+    const scoredExams = this.exams().filter(e => e.score !== undefined);
+    return scoredExams.length > 0 
+      ? Math.round(scoredExams.reduce((sum, e) => sum + (e.score || 0), 0) / scoredExams.length)
+      : 0;
+  });
 
   filteredExams = computed(() => {
     const examList = this.exams();

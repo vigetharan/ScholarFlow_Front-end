@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap, catchError, throwError } from 'rxjs';
+import { tap, delay, of, map, catchError, throwError } from 'rxjs';
 import { AuthResponse, User, UserResponse } from './user.model';
 import { environment } from '../../../environments/environment';
 
