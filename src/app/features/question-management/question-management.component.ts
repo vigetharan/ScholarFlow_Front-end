@@ -4,6 +4,8 @@ import { FormBuilder, ReactiveFormsModule, Validators, FormArray, FormsModule } 
 import { HttpClient } from '@angular/common/http';
 import { catchError, tap } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { Router } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 
 // ── Enums matching C# backend ───────────────────────────────────────────
 export enum BloomLevel {
@@ -255,7 +257,7 @@ const OTHERS_ID = '__others__';
         <div>
           <div class="flex items-center gap-2 mb-1">
             <div class="w-2 h-2 rounded-full" style="background:#a78bfa;"></div>
-            <span class="text-xs font-bold uppercase tracking-widest" style="color:#9f8fcb;">Question Bank</span>
+            <span class="text-xs font-bold uppercase tracking-widest mb-0.5" style="color:#9f8fcb;">Question Bank</span>
           </div>
           <h1 class="text-2xl font-black tracking-tight" style="font-family:'Fraunces',serif; color:#fff;">
             Question Management
@@ -263,6 +265,9 @@ const OTHERS_ID = '__others__';
           <p class="text-xs mt-1 font-medium" style="color:#9b8fa8;">
             {{ questions().length }} question{{ questions().length !== 1 ? 's' : '' }} total
             @if (isLoading()) { <span style="color:#a78bfa;"> · Loading…</span> }
+            @if (currentUser()) { 
+             <--! <span style="color:#a78bfa;"> · {{ currentUser()?.firstName }} ({{ currentUser()?.role }})</span> --!>
+            }
           </p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -774,7 +779,12 @@ const OTHERS_ID = '__others__';
 export class QuestionManagementComponent implements OnInit {
   private http = inject(HttpClient);
   private fb   = inject(FormBuilder);
+  private auth = inject(AuthService);
+  private router = inject(Router);
   private readonly API = 'http://localhost:5222/api';
+
+  // Expose auth service to template as computed signal
+  currentUser = computed(() => this.auth.currentUser());
 
   // Expose sentinel to template
   readonly OTHERS = OTHERS_ID;
@@ -815,7 +825,10 @@ export class QuestionManagementComponent implements OnInit {
     // Content
     questionText:  ['',   Validators.required],
     options:       this.fb.array([
-      this.mkOpt(), this.mkOpt(), this.mkOpt(), this.mkOpt()
+      this.mkOpt(true),   // A — correct by default
+      this.mkOpt(),
+      this.mkOpt(),
+      this.mkOpt()
     ]),
     explanation:   [''],
     // Materials & QC
@@ -830,24 +843,29 @@ export class QuestionManagementComponent implements OnInit {
   get difficultyValue(): number { return (this.qForm.get('difficulty')?.value as number) ?? 0; }
   isOptCorrect(i: number): boolean { return !!(this.optArr.at(i)?.get('isCorrect')?.value); }
 
-  // ── Cascading dropdowns ───────────────────────────────────────────────────
+  // ── Signals tracking selected cascade IDs ────────────────────────────────
+  selectedStreamId  = signal<string>('');
+  selectedSubjectId = signal<string>('');
+  selectedTopicId   = signal<string>('');
+
+  // ── Cascading dropdowns — reactive to signals ─────────────────────────────
   availableSubjects = computed(() => {
-    const sid = this.qForm.get('streamId')?.value;
+    const sid = this.selectedStreamId();
     if (!sid || sid === OTHERS_ID) return [];
     return this.streams().find(s => s.id === sid)?.subjects || [];
   });
 
   availableTopics = computed(() => {
-    const tid = this.qForm.get('subjectId')?.value;
-    if (!tid || tid === OTHERS_ID) return [];
+    const subid = this.selectedSubjectId();
+    if (!subid || subid === OTHERS_ID) return [];
     for (const st of this.streams())
       for (const su of st.subjects)
-        if (su.id === tid) return su.topics;
+        if (su.id === subid) return su.topics;
     return [];
   });
 
   availableSubTopics = computed(() => {
-    const tid = this.qForm.get('topicId')?.value;
+    const tid = this.selectedTopicId();
     if (!tid || tid === OTHERS_ID) return [];
     for (const st of this.streams())
       for (const su of st.subjects)
@@ -859,9 +877,9 @@ export class QuestionManagementComponent implements OnInit {
   // ── Live breadcrumb preview while filling form ────────────────────────────
   breadcrumbPreview = computed(() => {
     const crumbs: { label: string; cls: string }[] = [];
-    const sid  = this.qForm.get('streamId')?.value;
-    const subid = this.qForm.get('subjectId')?.value;
-    const tid  = this.qForm.get('topicId')?.value;
+    const sid  = this.selectedStreamId();
+    const subid = this.selectedSubjectId();
+    const tid  = this.selectedTopicId();
     const stid = this.qForm.get('subTopicId')?.value;
 
     const streamName = sid === OTHERS_ID ? 'Others'
@@ -914,6 +932,18 @@ export class QuestionManagementComponent implements OnInit {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit() {
+    // Check authentication first
+    if (!this.auth.isAuthenticated()) {
+      console.log('User not authenticated, redirecting to login...');
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    console.log('=== Question Management Init ===');
+    console.log('Is Authenticated:', this.auth.isAuthenticated());
+    console.log('Current User:', this.auth.currentUser());
+    console.log('User Role:', this.auth.currentUser()?.role);
+    
     this.loadStreams();
     this.loadQuestions();
   }
@@ -934,17 +964,28 @@ export class QuestionManagementComponent implements OnInit {
 
   // ── Cascade handlers ──────────────────────────────────────────────────────
   onStreamChange() {
+    const val = this.qForm.get('streamId')?.value || '';
+    this.selectedStreamId.set(val);
+    this.selectedSubjectId.set('');
+    this.selectedTopicId.set('');
     this.qForm.patchValue({ subjectId: '', topicId: '', subTopicId: '', subjectOther: '', topicOther: '', subTopicOther: '' });
   }
   onSubjectChange() {
+    const val = this.qForm.get('subjectId')?.value || '';
+    this.selectedSubjectId.set(val);
+    this.selectedTopicId.set('');
     this.qForm.patchValue({ topicId: '', subTopicId: '', topicOther: '', subTopicOther: '' });
   }
   onTopicChange() {
+    const val = this.qForm.get('topicId')?.value || '';
+    this.selectedTopicId.set(val);
     this.qForm.patchValue({ subTopicId: '', subTopicOther: '' });
   }
 
   // ── Form helpers ──────────────────────────────────────────────────────────
-  mkOpt()  { return this.fb.group({ optionText: ['', Validators.required], isCorrect: [false] }); }
+  mkOpt(isCorrect = false) {
+    return this.fb.group({ optionText: ['', Validators.required], isCorrect: [isCorrect] });
+  }
   mkMat()  { return this.fb.group({ title: ['', Validators.required], content: ['', Validators.required], resourceUrl: [''], materialType: ['Text', Validators.required] }); }
 
   setCorrect(idx: number) {
@@ -966,7 +1007,10 @@ export class QuestionManagementComponent implements OnInit {
       return streamOk && subjectOk && topicOk && stOk && !!v.difficulty && !!v.marks && !!v.bloomLevel;
     }
     if (this.currentStep() === 2) {
-      return !!this.qForm.get('questionText')?.value?.trim() && !this.optValidMsg();
+      const hasText = !!this.qForm.get('questionText')?.value?.trim();
+      const optsValid = this.optArr.controls.every(o => !!o.get('optionText')?.value?.trim());
+      const correctCount = this.optArr.controls.filter(o => o.get('isCorrect')?.value).length;
+      return hasText && optsValid && correctCount === 1;
     }
     return true;
   }
@@ -1014,9 +1058,16 @@ export class QuestionManagementComponent implements OnInit {
   // ── CRUD ──────────────────────────────────────────────────────────────────
   openForm() {
     this.editingQuestion.set(null);
+    this.selectedStreamId.set('');
+    this.selectedSubjectId.set('');
+    this.selectedTopicId.set('');
     this.qForm.reset({ difficulty: 5, marks: 1, orderIndex: 1, bloomLevel: 1, reviewStatus: 1, isFlagged: false });
-    while (this.optArr.length > 4) this.optArr.removeAt(4);
-    this.optArr.controls.forEach(c => c.reset({ optionText: '', isCorrect: false }));
+    // Reset to 4 options with A pre-selected as correct
+    while (this.optArr.length > 0) this.optArr.removeAt(0);
+    this.optArr.push(this.mkOpt(true));  // A correct by default
+    this.optArr.push(this.mkOpt());
+    this.optArr.push(this.mkOpt());
+    this.optArr.push(this.mkOpt());
     this.matArr.clear();
     this.currentStep.set(1);
     this.showForm.set(true);
@@ -1030,6 +1081,11 @@ export class QuestionManagementComponent implements OnInit {
     const subject = stream?.subjects.find(s => s.name === q.subjectName);
     const topic   = subject?.topics.find(t => t.name === q.topicName);
     const subTopic = topic?.subTopics.find(s => s.name === q.subTopicName);
+
+    // Seed cascade signals so computed dropdowns react
+    this.selectedStreamId.set(stream?.id  || OTHERS_ID);
+    this.selectedSubjectId.set(subject?.id || OTHERS_ID);
+    this.selectedTopicId.set(topic?.id    || OTHERS_ID);
 
     this.qForm.patchValue({
       streamId:    stream?.id    || OTHERS_ID,
@@ -1060,6 +1116,19 @@ export class QuestionManagementComponent implements OnInit {
   }
 
   saveQuestion() {
+    // Check authentication
+    if (!this.auth.isAuthenticated()) {
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    // Check user role
+    const user = this.auth.currentUser();
+    if (!user || (user.role?.toUpperCase() !== 'TEACHER' && user.role?.toUpperCase() !== 'ADMIN')) {
+      alert(`Access denied. Current role: ${user?.role}. Required: TEACHER or ADMIN`);
+      return;
+    }
+
     if (this.qForm.invalid || this.optValidMsg()) return;
     const editing = this.editingQuestion();
     const payload = this.buildPayload(Number(this.qForm.value.reviewStatus) as ReviewStatus);
@@ -1068,8 +1137,23 @@ export class QuestionManagementComponent implements OnInit {
       ? this.http.put(`${this.API}/questions/${editing.id}`, payload)
       : this.http.post(`${this.API}/questions`, payload);
 
-    req$.pipe(catchError(err => { console.error('save question', err); return of(null); }))
-      .subscribe(() => { this.loadQuestions(); this.closeForm(); });
+    req$.pipe(
+      catchError(err => {
+        console.error('Save question error:', err);
+        if (err.status === 403) {
+          alert('Access denied: You need Teacher or Admin role to create/edit questions.');
+        } else if (err.status === 401) {
+          alert('Session expired. Please login again.');
+          this.auth.logout();
+        } else {
+          alert(`Failed to save question: ${err.message || 'Unknown error'}`);
+        }
+        return of(null);
+      })
+    ).subscribe(() => { 
+      this.loadQuestions(); 
+      this.closeForm(); 
+    });
   }
 
   saveDraft() {
@@ -1130,10 +1214,6 @@ export class QuestionManagementComponent implements OnInit {
     return ({1:'badge badge-pending',2:'badge badge-approved',3:'badge badge-revision',4:'badge badge-rejected'} as any)[s] || 'badge';
   }
 }
-
-
-
-
 
 // import { Component, inject, signal, computed } from '@angular/core';
 // import { CommonModule } from '@angular/common';

@@ -44,6 +44,7 @@ export class AuthService {
   }
 
   private setSession(authResult: AuthResponse) {
+    console.log('setSession called with:', authResult);
     localStorage.setItem('token', authResult.token);
     this._accessToken.set(authResult.token);
     
@@ -57,6 +58,9 @@ export class AuthService {
         role: authResult.user.role as 'ADMIN' | 'TEACHER' | 'STUDENT'
       };
       this._currentUser.set(user);
+      console.log('User set in authService:', user);
+    } else {
+      console.log('No user in authResult:', authResult);
     }
     
     this.router.navigate(['/dashboard']);
